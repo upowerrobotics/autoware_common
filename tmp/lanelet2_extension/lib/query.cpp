@@ -27,7 +27,7 @@
 #include <lanelet2_core/geometry/Lanelet.h>
 #include <lanelet2_routing/RoutingGraph.h>
 #include <tf2/utils.h>
-#ifdef ROS_DISTRO_GALACTIC
+#if (defined ROS_DISTRO_GALACTIC) || (defined ROS_DISTRO_FOXY)
 #include "tf2_geometry_msgs/tf2_geometry_msgs.h"
 #else
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
