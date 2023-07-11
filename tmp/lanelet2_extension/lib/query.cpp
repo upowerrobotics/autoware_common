@@ -212,6 +212,35 @@ std::vector<lanelet::NoStoppingAreaConstPtr> query::noStoppingAreas(
   return no_reg_elems;
 }
 
+std::vector<lanelet::NoParkingAreaConstPtr> query::noParkingAreas(
+  const lanelet::ConstLanelets & lanelets)
+{
+  std::vector<lanelet::NoParkingAreaConstPtr> no_pa_reg_elems;
+
+  for (const auto & ll : lanelets) {
+    std::vector<lanelet::NoParkingAreaConstPtr> ll_no_pa_re =
+      ll.regulatoryElementsAs<lanelet::autoware::NoParkingArea>();
+
+    // insert unique NoParkingArea into array
+    for (const auto & no_pa_ptr : ll_no_pa_re) {
+      lanelet::Id id = no_pa_ptr->id();
+      bool unique_id = true;
+
+      for (const auto & no_reg_elem : no_pa_reg_elems) {
+        if (id == no_reg_elem->id()) {
+          unique_id = false;
+          break;
+        }
+      }
+
+      if (unique_id) {
+        no_pa_reg_elems.push_back(no_pa_ptr);
+      }
+    }
+  }
+  return no_pa_reg_elems;
+}
+
 std::vector<lanelet::SpeedBumpConstPtr> query::speedBumps(const lanelet::ConstLanelets & lanelets)
 {
   std::vector<lanelet::SpeedBumpConstPtr> sb_reg_elems;
@@ -238,6 +267,34 @@ std::vector<lanelet::SpeedBumpConstPtr> query::speedBumps(const lanelet::ConstLa
     }
   }
   return sb_reg_elems;
+}
+
+std::vector<lanelet::CrosswalkConstPtr> query::crosswalks(const lanelet::ConstLanelets & lanelets)
+{
+  std::vector<lanelet::CrosswalkConstPtr> cw_reg_elems;
+
+  for (const auto & ll : lanelets) {
+    std::vector<lanelet::CrosswalkConstPtr> ll_cw_re =
+      ll.regulatoryElementsAs<lanelet::autoware::Crosswalk>();
+
+    // insert unique id into array
+    for (const auto & cw_ptr : ll_cw_re) {
+      lanelet::Id id = cw_ptr->id();
+      bool unique_id = true;
+
+      for (const auto & cw_reg_elem : cw_reg_elems) {
+        if (id == cw_reg_elem->id()) {
+          unique_id = false;
+          break;
+        }
+      }
+
+      if (unique_id) {
+        cw_reg_elems.push_back(cw_ptr);
+      }
+    }
+  }
+  return cw_reg_elems;
 }
 
 lanelet::ConstPolygons3d query::getAllPolygonsByType(
@@ -786,9 +843,12 @@ bool query::getClosestLanelet(
     double pose_yaw = tf2::getYaw(search_pose.orientation);
     for (const auto & llt : candidate_lanelets) {
       lanelet::ConstLineString3d segment = getClosestSegment(search_point, llt.centerline());
-      double segment_angle = std::atan2(
-        segment.back().y() - segment.front().y(), segment.back().x() - segment.front().x());
-      double angle_diff = std::abs(autoware_utils::normalize_radian(segment_angle - pose_yaw));
+      double angle_diff = M_PI;
+      if (!segment.empty()) {
+        double segment_angle = std::atan2(
+          segment.back().y() - segment.front().y(), segment.back().x() - segment.front().x());
+        angle_diff = std::abs(autoware_utils::normalize_radian(segment_angle - pose_yaw));
+      }
       if (angle_diff < min_angle) {
         min_angle = angle_diff;
         *closest_lanelet_ptr = llt;
