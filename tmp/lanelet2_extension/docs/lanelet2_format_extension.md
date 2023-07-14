@@ -118,7 +118,7 @@ Here is an example of MetaInfo in osm file:
 
 Sometimes users might want to create Lanelet2 maps that are not georeferenced.
 In such a case, users may use "local_x", "local_y" taggings to express local positions instead of latitude and longitude.
-Autoware Osm Parser will overwrite x,y positions with these tags when they are present.
+You will need to `lanelet2_map_projector_type` to `local`, then [autoware map loader](https://github.com/autowarefoundation/autoware.universe/tree/main/map/map_loader#lanelet2_map_loader) will overwrite x,y positions with these tags when they are present.
 For z values, use "ele" tags as default Lanelet2 Format.
 You would still need to fill in lat and lon attributes so that parser does not crush, but their values could be anything.
 
@@ -202,6 +202,35 @@ The following illustrates how light_bulbs are registered to traffic_light regula
 </relation>
 ```
 
+### Crosswalk
+
+Original Lanelet2 format only requires `subtype=crosswalk` tag to be specified in the corresponding lanelet. However, Autoware requires a regulatory element to be defined on top of that in order to:
+
+- explicitly define the relevant driving lanes even in 3D environment
+- optionally define stop lines associated with the crosswalk
+- enable accurate definition of complex polygons for crosswalk
+
+For the details, refer to this [GitHub discussion](https://github.com/orgs/autowarefoundation/discussions/3036).
+Crosswalk regulatory element can be tied to `ref_line`, `crosswalk_polygon` and `refers`.
+
+![crosswalk_regulatory elements](crosswalk_regulatory_element.svg)
+
+- `ref_line`: Stop line for the crosswalk.
+- `crosswalk_polygon`: Accurate area of the crosswalk.
+- `refers`: Lanelet that indicates the moving direction of crosswalk users.
+
+_An example:_
+
+```xml
+<relation id="10751">
+  <member type="way" role="ref_line" ref="8123"/>
+  <member type="way" role="crosswalk_polygon" ref="4047"/>
+  <member type="relation" role="refers" ref="2206"/>
+  <tag k="type" v="regulatory_element"/>
+  <tag k="subtype" v="crosswalk"/>
+</relation>
+```
+
 ### Safety Slow Down for Crosswalks
 
 If you wish ego vehicle to slow down to a certain speed from a certain distance while passing over a
@@ -247,3 +276,96 @@ _An example:_
     <tag k="area" v="yes"/>
   </way>
 ```
+
+### Hatched Road Markings Area
+
+The area with `hatched_road_markings` tag can be used for avoiding obstacles when there is not enough space to avoid.
+Note that in some countries, it is forbidden for vehicles to go inside the area.
+
+_An example:_
+
+```xml
+  <way id="9933">
+    <nd ref="2058"/>
+    <nd ref="2059"/>
+    <nd ref="1581"/>
+    <nd ref="2057"/>
+    <nd ref="4925"/>
+    <nd ref="4923"/>
+    <nd ref="4921"/>
+    <nd ref="4920"/>
+    <tag k="type" v="hatched_road_markings"/>
+    <tag k="area" v="yes"/>
+  </way>
+```
+
+### No Stopping Area
+
+The area with `no_stopping_area` tag can be used to prohibit even a few seconds of stopping, even for traffic jams or at traffic lights.
+The ref_line can be set arbitrarily, and the ego-vehicle should stop at this line if it cannot pass through the area.
+
+_An example:_
+
+```xml
+  <way id='9853' visible='true' version='1'>
+    <nd ref='9849' />
+    <nd ref='9850' />
+    <nd ref='9851' />
+    <nd ref='9852' />
+    <tag k='area' v='yes' />
+    <tag k='type' v='no_stopping_area' />
+  </way>
+
+  <relation id='9854' visible='true' version='1'>
+    <member type='way' ref='9853' role='refers' />
+    <member type='way' ref='9848' role='ref_line' />
+    <tag k='subtype' v='no_stopping_area' />
+    <tag k='type' v='regulatory_element' />
+  </relation>
+```
+
+### No Parking Area
+
+The area with `no_parking_area` tag can be used to prohibit parking. Stopping for a few seconds is allowed in this area.
+
+_An example:_
+
+```xml
+  <way id='9853' visible='true' version='1'>
+    <nd ref='9849' />
+    <nd ref='9850' />
+    <nd ref='9851' />
+    <nd ref='9852' />
+    <tag k='area' v='yes' />
+    <tag k='type' v='no_parking_area' />
+  </way>
+
+  <relation id='9854' visible='true' version='1'>
+    <member type='way' ref='9853' role='refers' />
+    <tag k='subtype' v='no_parking_area' />
+    <tag k='type' v='regulatory_element' />
+  </relation>
+```
+
+### No Drivable Lane
+
+A no drivable lane is a lanelet or more that are out of operation design domain (ODD), i.e., the vehicle **must not** drive autonomously in this/these lanelet/s.  
+A lanelet becomes no drivable by adding an optional tag under the relevant lanelet in the map file `<tag k="no_drivable_lane" v="yes"/>`.
+
+_An example:_
+
+```xml
+<relation id="2621">
+    <member type="way" role="left" ref="2593"/>
+    <member type="way" role="right" ref="2620"/>
+    <tag k="type" v="lanelet"/>
+    <tag k="subtype" v="road"/>
+    <tag k="speed_limit" v="30.00"/>
+    <tag k="location" v="urban"/>
+    <tag k="one_way" v="yes"/>
+    <tag k="participant:vehicle" v="yes"/>
+    <tag k="no_drivable_lane" v="yes"/>
+  </relation>
+```
+
+For more details about the `no_drivable_lane` concept and design, please refer to the [**_no-drivable-lane-design_**](https://github.com/autowarefoundation/autoware.universe/blob/main/planning/behavior_velocity_no_drivable_lane_module/README.md) document.

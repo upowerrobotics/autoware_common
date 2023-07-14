@@ -33,7 +33,9 @@ add_definitions(${GeographicLib_DEFINITIONS})
 ament_auto_add_library(lanelet2_extension_lib SHARED
   lib/autoware_osm_parser.cpp
   lib/autoware_traffic_light.cpp
+  lib/crosswalk.cpp
   lib/detection_area.cpp
+  lib/no_parking_area.cpp
   lib/no_stopping_area.cpp
   lib/message_conversion.cpp
   lib/mgrs_projector.cpp
@@ -47,6 +49,11 @@ ament_auto_add_library(lanelet2_extension_lib SHARED
 )
 target_link_libraries(lanelet2_extension_lib
   ${GeographicLib_LIBRARIES}
+)
+get_target_property(lanelet2_core_INCLUDE_DIRECTORIES lanelet2_core::lanelet2_core INTERFACE_INCLUDE_DIRECTORIES)
+target_include_directories(lanelet2_extension_lib
+  SYSTEM PRIVATE
+    ${lanelet2_core_INCLUDE_DIRECTORIES}
 )
 
 ament_auto_add_executable(lanelet2_extension_sample src/sample_code.cpp)
@@ -82,6 +89,10 @@ if(BUILD_TESTING)
   target_link_libraries(regulatory_elements-test lanelet2_extension_lib)
   ament_add_ros_isolated_gtest(utilities-test test/src/test_utilities.cpp)
   target_link_libraries(utilities-test lanelet2_extension_lib)
+  target_include_directories(utilities-test
+  SYSTEM PRIVATE
+    ${lanelet2_core_INCLUDE_DIRECTORIES}
+  )
   ament_add_ros_isolated_gtest(route-test test/src/test_route_checker.cpp)
   target_link_libraries(route-test lanelet2_extension_lib)
 endif()
